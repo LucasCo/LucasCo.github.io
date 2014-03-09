@@ -1,0 +1,20 @@
+Localised Fishing Effort in Sydney Harbour
+========================================================
+
+The harbour will be divided into 12 Survey areas, These routes will be traversed by boat. The boat will undertake a set route in each survey area, with the starting point, route direction and starting time randomized according to a traditional roving creel design (Robson 1961, Hoenig et al 1993), however ‘in transit’ questionnaires will not be undertaken. This is similar to the last roving creel survey in Sydney Harbour (Ghosn et al 2010). We do not, however, consider surveying 50% of the harbour in a single route, due to the added constraint of needing to note all activities, not just fishing. The surveyors will navigate the set route using GPS equipment. In this way, instantaneous measures of activity intensity (λ)  in each survey location, at each time, can be quantified. Data can then be used to create a spatio-temporal model of intensity, or to supplement Ghosn et al (2010) and provide an update of fisher intensity at a fine spatial scale. 
+
+During each survey, spotters will be used to note activities on the foreshore and water and log these sightings onto a Tablet GIS platform (Budget Item 3; Smallwood et al 2011, Ghosn et al 2010). Boating will be conducted without noticeable markings so as to minimize behavioral changes of those under observation. Spotters (Budget Item 1) will be trained during several ‘mock’ surveys to observe only the categories under investigation and ambiguous activities, or activities that are immediately unclear will be marked as ‘other’. Where possible, photographs of these activities will be taken for further investigation (Smallwood et al 2011, WA FFR 2011). High powered binoculars (Budget Item 8) and high-resolution cameras fitted with a telephoto lens (Budget Item 4) will be used to aid the surveyors in areas of high volume traffic, and for events at longer distances.  Cameras will be fitted with standard GPS receiver units such that position, time and magnetic bearings are marked directly on each photo (Budget Item 6).
+
+```{r}
+#read in data
+
+rec.df<-read.csv("Data/Harbour_Survey_combined_data_1.csv", header=T) ##complete dataset on all observations
+fish.df<-readOGR("Data","Fishing_boats_Sh_clean",p4s= "+proj=longlat") ##from Arc; sanity check on fishing locations, removed bad points manually.
+est<-readOGR("Data","SH_est_poly_clipped")
+```
+
+
+```{r fig.width=7, fig.height=6}
+plot(est)
+```
+
