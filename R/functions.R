@@ -107,4 +107,5 @@ raw.dat.plot <- function(rasterstack,extent,time, location,sub) {
   plot(est,lwd=1,add=T, extent=extent)  
 }
 
+stdErr=function(x) {sd(x)/ sqrt(length(x))}
 
