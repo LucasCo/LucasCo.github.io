@@ -33,9 +33,9 @@ use.dat$Period<-cut(use.dat$hour, breaks=c(0,11,14,23),
 #need to convert back to POSIXct for ddply to work
 use.dat$time_syd<-as.POSIXct(use.dat$time_syd,format='%Y-%m-%d %H:%M:%S')
 
-use.dat$INT<-remove.punc(interaction(use.dat$DayTrans.int, use.dat$date_1))
+use.dat$INT<-remove.punc(interaction(use.dat$DayType, use.dat$Transect, use.dat$Period, use.dat$date_1))
 use.dat<-use.dat[order(use.dat$INT),]
-
+head(use.dat)
 ##create a SpatialPointsDataFrame
 
 #create coordinates

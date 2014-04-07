@@ -7,6 +7,7 @@ library(ggplot2)
 library(rgdal)
 library(spatstat)
 library(maptools)
+library(grid)
 source('R/functions.R')
 
 rm(list=ls())
@@ -21,17 +22,21 @@ est<-spTransform(est, CRS("+proj=utm +zone=56 +south +ellps=GRS80 +units=m +no_d
 use.dat.clean<-readOGR("Output","use.spdf.shapefile")
 use.dat<-use.dat.clean@data
 fish.dat<-use.dat[use.dat$ActvtyT=='Fishing Boat',]
-
+all.fish.dat<-use.dat[use.dat$ActvtyT=='Fishing Boat'| use.dat$ActvtyT=='Shore Fishing',]
 
 ####################################
-#Summary Statistics Fishing Data
+#Summary Statistics Fishing Data -BOATS
 ####################################
 
 #number of surveys conducted
 a<-ddply(use.dat, .(Period, DayType, TrnsctT, INT), summarise, Freq = length(date_1))
 a
-survey.freq<-ddply(a, . (TrnsctT, DayType, Period ), summarise, Freq = length(date_1))
-
+a<-a[,1:4]
+a$INT.reps<-remove.digits(a$INT)
+a<-a[order(a$INT.reps),]
+a
+survey.freq<-ddply(a, . (TrnsctT, DayType, Period ), summarise, Freq = length(INT.reps))
+survey.freq
 
 #mean fishing boats per survey
 b<-ddply(fish.dat, .(Period, DayType, TrnsctT, INT), summarise, Freq = length(date_1), Rods=sum(Rods))
@@ -62,7 +67,7 @@ fish.means<-data.frame(Transect=transect,DayType=daytype,Period=period,INT=fish.
 #MEAN FISHING PER TRANSECTS
 ######################
 
-fish.mn<-ddply(fish.means, .(Transect, DayType,Period), summarise, mean=mean(Freq), sd=sd(Freq),SE=stdErr(Freq), Rods=mean(Rods)
+fish.mn<-ddply(fish.means, .(Transect, DayType,Period), summarise, mean=mean(Freq), sd=sd(Freq),SE=stdErr(Freq), Rods=mean(Rods))
 fish.mn
 
 
@@ -72,7 +77,7 @@ fish.mn
 
 shore.dat<-use.dat[use.dat$ActvtyT=='Shore Fishing',]
 
-#mean fishing shore per survey
+# fishing shore per survey
 shore<-ddply(shore.dat, .(Period, DayType, TrnsctT, INT), summarise, Freq = length(date_1), Rods=sum(Rods))
 
 no.shore.INT<-outersect(a$INT, shore$INT)
@@ -108,11 +113,24 @@ total.fishing$Transect<-revalue(total.fishing$Transect, c(ChowderBay='Chowder Ba
 total.fishing$DayType<-revalue(total.fishing$DayType, c(we='Weekday',wk='Weekend'))
 total.fishing$Period<-revalue(total.fishing$Period, c(Aft='Afternoon',Mid='Midday',Morn='Morning'))
 
-total.mn<-ddply(total.fishing, .(Transect, DayType,Period), summarise, mean=round(mean(Fishing),2), sd=round(sd(Fishing),2), SE=astdErr(Fishing))
+total.mn<-ddply(total.fishing, .(Transect, DayType,Period), summarise, mean=round(mean(Fishing),2), sd=round(sd(Fishing),2), SE=stdErr(Fishing))
 
 
 total.mn
 
+###total fishing
+
+fish.tot$tot.fish<-round(fish.tot$Freq.boat+fish.tot$Freq.shore, 2)
+
+
+wk.tot.fish<-ddply(fish.tot, .(DayType.boat, Period.boat), summarize, mean.tot=mean(tot.fish), sum.tot=sum(tot.fish), mean.boat=mean(Freq.boat), sum.boat=sum(Freq.boat),
+                   mean.shore=mean(Freq.shore), sum.shore=sum(Freq.shore), means.rods.shore=mean(Rods.shore), sum.rod.shore=sum(Rods.shore), mean.rod.boat=mean(Rods.boat),
+                   sum.rods.boat=sum(Rods.boat))
+
+xtable(wk.tot.fish)
+
+trans.tot.fish<-ddply(fish.tot, .(DayType.boat, Transect.boat), summarize, Mean=round(mean(tot.fish),0), Sum=sum(tot.fish), St.Deviation=round(sd(tot.fish),1))
+print(xtable(trans.tot.fish,digits=0,include.rownames=FALSE))
 
 #########################
 #PLOTTING SUMMARY STATS
