@@ -110,6 +110,116 @@ raw.dat.plot <- function(rasterstack,extent,time, location,sub) {
 stdErr=function(x) {sd(x)/ sqrt(length(x))}
 
 
+##' Modifies 'data' by adding new values supplied in newDataFileName
+##'
+##' newDataFileName is expected to have columns
+##' c(lookupVariable,lookupValue,newVariable,newValue,source)
+##'
+##' Within the column 'newVariable', replace values that
+##' match 'lookupValue' within column 'lookupVariable' with the value
+##' newValue'. If 'lookupVariable' is NA, then replace *all* elements
+##' of 'newVariable' with the value 'newValue'.
+##'
+##' Note that lookupVariable can be the same as newVariable.
+##'
+##' @param newDataFileName name of lookup table
+##' @param data existing data.frame
+##' @param allowedVars vector of permissible variable names for newVariable
+##' @return modified data.frame
+addNewData <- function(newDataFileName, data, allowedVars){
+  
+  import <- readNewData(newDataFileName, allowedVars)
+  
+  if( !is.null(import)){
+    for(i in seq_len(nrow(import))){ #Make replacements
+      col.to <- import$newVariable[i]
+      col.from <- import$lookupVariable[i]
+      if(is.na(col.from)){ # apply to whole column
+        data[col.to] <- import$newValue[i]
+      } else { # apply to subset
+        rows <- data[[col.from]] == import$lookupValue[i]
+        data[rows,col.to] <- import$newValue[i]
+      }
+    }
+  }
+  data
+}
+
+##' Utility function to read/process newDataFileName for addNewData
+##'
+##' @param newDataFileName name of lookup table
+##' @param allowedVars vector of permissible variable names for newVariable
+##' @return data.frame with columns c(lookupVariable,lookupValue,newVariable,newValue,source)
+readNewData <- function(newDataFileName, allowedVars){
+  if( file.exists(newDataFileName)){
+    import <- read.csv(newDataFileName, header=TRUE, stringsAsFactors=FALSE,
+                       strip.white=TRUE)
+    if( nrow(import)> 0 ){
+      #Check columns names for import are right
+      expectedColumns<- c("lookupVariable","lookupValue","newVariable","newValue")
+      nameIsOK <- expectedColumns %in% names(import)
+      if(any(!nameIsOK))
+        stop("Incorrect name in lookup table for ",
+             newDataFileName, "--> ", paste(expectedColumns[!nameIsOK],
+                                            collapse=", "))
+      #Check values of newVariable are in list of allowed variables
+      import$lookupVariable[import$lookupVariable == ""] <- NA
+      nameIsOK <- import$newVariable %in% allowedVars
+      if(any(!nameIsOK))
+        stop("Incorrect name(s) in newVariable column of ",
+             newDataFileName, "--> ", paste(import$newVariable[!nameIsOK],
+                                            collapse=", "))
+    } else {
+      import <- NULL
+    }
+  } else {
+    import <- NULL
+  }
+  import
+}
+
+##create proper time stamps from garmin etrex20 output
+
+gps.time<-function(timeVector){
+  time.char<-as.character(timeVector)#convert gps time to character for conversion to timestamp proper
+  timeP<-strptime(time.char,format='%Y-%m-%dT%H:%M:%S') #convert to a timestamp in right format
+  pb.date<-as.POSIXct(timeP, tz="GMT") #convert to POSIX timestamp in GMT time
+  time_syd<-format(pb.date, tz="Australia/Sydney")#convert to POSIX timestamp in Sydney Time
+  return(time_syd)
+}
+
+####strip the date only from a POSIX timestamp, such as created above
+gps.date<-function(timeVector){
+  time.char<-as.character(timeVector)#convert gps time to character for conversion to timestamp proper
+  timeP<-strptime(time.char,format='%Y-%m-%dT%H:%M:%S') #convert to a timestamp in right format
+  pb.date<-as.POSIXct(timeP, tz="GMT") #convert to POSIX timestamp in GMT time
+  time_syd<-format(pb.date, tz="Australia/Sydney")#convert to POSIX timestamp in Sydney Time
+  date<-as.POSIXct(time_syd, format="%Y-%m-%d %H:%M:%S")#convert time to POSIXCT timestamp
+  date_1<-as.Date(date,format='%d-%m-%y')
+  date_1<-as.factor(date_1)
+  return(date_1)
+}
+
+#########
+#CONvert distance and bearing to new locations
+########
+
+target.conversion<-function(currentLat, currentLong, Bearing, DistanceMetres){
+  latR<-currentLat*pi/180 #convert everything to radians
+  lonR<-currentLong*pi/180 #convert everything to radians
+  BearR<-Bearing*pi/180 #convert everything to radians
+  radiusEarth<-6371 #convert everything to radians
+  distKM<-DistanceMetres/1000 #convert everything to radians
+  distR<-distKM/radiusEarth #convert everything to radians
+  lat2<-asin(sin(latR)*cos(distR) + cos(latR)*sin(distR)*cos(BearR)) #convert to new point
+  lon2<-lonR + atan2(sin(BearR)*sin(distR)*cos(latR), cos(distR)-sin(latR)*sin(latR)) #convert to new point
+  TargetLat<-lat2 * 180/pi
+  TargetLon<-lon2 * 180/pi
+  return(list(TargetLat=TargetLat, TargetLon=TargetLon))
+}
+
+
+
 
 
 
