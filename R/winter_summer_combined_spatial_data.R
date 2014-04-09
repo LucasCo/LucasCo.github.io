@@ -15,6 +15,7 @@ rm(list=ls())
 source("R/functions.R")
 
 
+
 #############################################
 #reading in the data and cleaning it. Converting to spdf
 ##############################################
@@ -23,6 +24,9 @@ winter_dat<-read.csv("Data/Harbour_Survey_combined_data_1.csv",header=T, strings
 winter_dat$Season<-"Winter"
 summer_dat<-read.csv("Data/SH_survey_summer.csv", header=T, stringsAsFactors=FALSE) ###is combined in this script
 est<-readOGR("Data","SH_est_poly_clipped") ###is clipped and cleaned in other script
+
+
+
 
 ###############
 #combining, cleaning, and preprocessing of Summer Census
@@ -36,65 +40,70 @@ names(downloads.lst) <- paste("summer_download_", 1:4, sep='')
 download.time<-c(1,2,3,4)
 for (i in 1:4){
   downloads.lst[[i]]$download<-download.time[i]
-  downloads.lst[[i]]$coordint<-interaction(downloads.lst[[i]]$download, downloads.lst[[i]]$name, sep=".")
+  downloads.lst[[i]]$Coordint<-as.character(interaction(downloads.lst[[i]]$download, downloads.lst[[i]]$name, sep="."))
 }
 summer_coords<-rbind.fill(downloads.lst)
 
 ####combining with the waypoint data
-summer_dat$coordint<-interaction(summer_dat$GPS.Download, summer_dat$Waypoint, sep=".") #make a coordint variable in the waypoint data to use as an index for merging
-summer_data<-merge(summer_dat,summer_coords,by="coordint")
+summer_dat$Coordint<-as.character(interaction(summer_dat$GPS.Download, summer_dat$Waypoint, sep=".")) #make a coordint variable in the waypoint data to use as an index for merging
+summer_data<-merge(summer_dat,summer_coords,by="Coordint")
 
 ####use new function created by Daniel Falstaff at Mac Uni. Found here "https://gist.github.com/dfalster/5589956". Uses lookup table to replace 
 write.table(levels(summer_data$Target), "Data/summer_target_names.csv", sep=",")###To create a new NewLookupTable in excel. 
-#values, in the same way as plyr
 allowedVars<-c("Activity", "Day","DayPeriod", "Transect")
 summer_data_cleaned<-addNewData("Data/harbour_use_lookuptable.csv", summer_data, allowedVars)
 summer_data_cleaned$Season<-"Summer"
-
-
-head(winter_dat)
-head(summer_data_cleaned)
-outersect(names(winter_dat),names(summer_data_cleaned))
-colnames(winter_dat)[which(names(winter_dat) == "Coordint")] <- "coordint"
-
-
-###convert and create proper time stamps
 sum_dat<-summer_data_cleaned
-sum_dat$time_syd<-gps.time(sum_dat$time)  ###custum function to change etrex20 GPS times into Sydney Time
-sum_dat$date_1<-gps.date(sum_dat$time) ###custom function to get the date in a posix time stamp from an etrex garmin
 
 ###get target lats and longs- function returns a two column matrix of new lat and long. access like a list
 newLatLong<-target.conversion(sum_dat$lat, sum_dat$lon, sum_dat$Bearing, sum_dat$Distance)
 sum_dat$TargetLat<-newLatLong[[1]]
 sum_dat$Targetlon<-newLatLong[[2]]
 
+###convert and create proper time stamps
+sum_dat$time_syd<-gps.time(sum_dat$time)  ###custum function to change etrex20 GPS times into Sydney Time
+sum_dat$date_1<-gps.date(sum_dat$time) ###custom function to get the date in a posix time stamp from an etrex garmin
 
 ##reduce summer_dat to have same columns as winter_dat
 drops<-outersect(colnames(sum_dat), colnames(winter_dat))
-sum_dat<-sum_dat[,!(names(sum_dat) %in% drops)]
+summer_data<-sum_dat[,!(names(sum_dat) %in% drops)]
 
-sum_dat$DayType[sum_dat$DayType=="Weekend"]<-"wk"
-sum_dat$DayType[sum_dat$DayType=="Week"]<-"we"
-sum_dat$Period[sum_dat$Period=="Morning"]<-"Morn"
-sum_dat$Period[sum_dat$Period=="Midday"]<-"Mid"
-sum_dat$Period[sum_dat$Period=="Afternoon"]<-"Aft"
+##some general cleaning of data to bring in line with winter survey terminology
+summer_data$DayType[summer_data$DayType=="Weekend"]<-"wk"
+summer_data$DayType[summer_data$DayType=="Week"]<-"we"
+summer_data$Period[summer_data$Period=="Morning"]<-"Morn"
+summer_data$Period[summer_data$Period=="Midday"]<-"Mid"
+summer_data$Period[summer_data$Period=="Afternoon"]<-"Aft"
+summer_data$People<-as.integer(summer_data$People)
+summer_data$People[is.na(summer_data$People)] <- 0
+
+summer_data$time_syd<-strptime(summer_data$time_syd,format='%Y-%m-%d %H:%M:%S') #convert to a timestamp in right format
+winter_dat$time_syd<-strptime(winter_dat$time_syd, format='%d/%m/%y %H:%M')
+
 
 #####################
 ####Joing the two surveys together into one dataset
 ##################
-SH_census_dat<-rbind(winter_dat, sum_dat)
+SH_census_dat<-rbind.fill(winter_dat, summer_data)
+
+#remove doubled or inconsistant columns
+drops.2<-c("ActivityType","TransectType","DayTrans.int","date_1", "Time")
+SH_census_dat<-SH_census_dat[,!names(SH_census_dat) %in% drops.2]
+
+
 
 ###############
 #Clean up and standardise the variables accross the two seasons -i.e. add a new date_1 and a new DayTrans.int
 ###############
-SH_census_dat$DayTrans.int<-interaction(SH_census_dat$DayType,SH_census_dat$Transect,SH_census_dat$Period)
-SH_census_dat$date_1<-gps.date.syd(SH_census_dat$time_syd)
+SH_census_dat$DayTrans.int<-as.character(interaction(SH_census_dat$DayType,SH_census_dat$Transect,SH_census_dat$Period))
+SH_census_dat$date_1<-as.character(gps.date.syd(SH_census_dat$time_syd))
 
 ###redo the Period to standardize from the GPS times.
-SH_census_dat$Period<-time.of.day(SH_census_dat$time_syd)
+SH_census_dat$Period<-as.character(time.of.day(SH_census_dat$time_syd))
 
 ###create new Coordint to incorporate season
-SH_census_dat$Coordint_season<-interaction(SH_census_dat$Season, SH_census_dat$Coordint, sep=".")
+SH_census_dat$Coordint_season<-as.character(interaction(SH_census_dat$Season, SH_census_dat$Coordint, sep="."))
+
 
 
 #################
@@ -104,6 +113,7 @@ SH_census_dat$Coordint_season<-interaction(SH_census_dat$Season, SH_census_dat$C
 ##list NA's and 0's in SH_census data
 SH_census_dat<-SH_census_dat[!is.na(SH_census_dat$TargetLat),]
 SH_census_dat<-SH_census_dat[SH_census_dat$TargetLat!=0,]
+SH_census_dat<-SH_census_dat[!is.na(SH_census_dat$Activity),]
 
 #create coords and make spdf
 coords<-as.data.frame(cbind(SH_census_dat$Targetlon, SH_census_dat$TargetLat))
@@ -120,6 +130,11 @@ fish.spdf.1<-outside.points.move(fish.spdf,"Data/SH_est_poly_clipped.shp")
 SH_census_spdf_nofish<-SH_census_spdf[SH_census_spdf@data$Activity!="Fishing Boat",]
 SH_census_spdf<-rbind(SH_census_spdf_nofish,fish.spdf.1)
 
-shorefish.spdf<-SH_census_spdf[SH_census_spdf@data$Activity=="Shore Fishing",]
-shorefish.spdf.1<-all.points.move(shorefish.spdf,"Data/SH_est_poly_clipped.shp")
+plot(SH_census_spdf[SH_census_spdf@data$Activity=="Shore Fishing" | SH_census_spdf@data$Activity=="Fishing Boat",])
+plot(est,add=T)
 
+
+###########
+#OUTPUT TO ESRI SHAPFILE
+############
+writeOGR(SH_census_spdf,driver="ESRI Shapefile", layer="SH_census_spdf", dsn="Output")
