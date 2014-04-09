@@ -200,6 +200,15 @@ gps.date<-function(timeVector){
   return(date_1)
 }
 
+
+gps.date.syd<-function(timeSyd){
+  date<-as.POSIXct(timeSyd, format="%Y-%m-%d %H:%M:%S")#convert time to POSIXCT timestamp
+  date_1<-as.Date(date,format='%d-%m-%y')
+  date_1<-as.factor(date_1)
+  return(date_1)
+}
+
+
 #########
 #CONvert distance and bearing to new locations
 ########
@@ -219,7 +228,72 @@ target.conversion<-function(currentLat, currentLong, Bearing, DistanceMetres){
 }
 
 
+########
+####create Time of Day vector from a POSIX time stamp
+######
+##takes a sydney time POSIX stamp and converts to midday, morning, afternoon
+
+time.of.day<-function(time){
+  time_syd<-as.POSIXlt(time,format='%Y-%m-%d %H:%M:%S')
+  hour<-time_syd$hour
+  Period<-cut(hour, breaks=c(0,11,14,23),labels=c("Morn","Mid","Aft")) #break the $hour in morn, mid, aft
+  return(Period)
+}
+  
+
+##checking for non-finite elements
+is.finite.data.frame <- function(obj){
+  sapply(obj,FUN = function(x) all(is.finite(x)))
+}
 
 
+##removing na's and zeros
+remove.na.0s<-function(data, variable1){ 
+  dat<-data
+  dat<-dat[!is.na(variable1),]
+  dat<-dat[variable1!=0,]
+  return(dat)
+}
 
+
+###convert spdf data, subset to those points outside a polygon and concert to ppp and project onto lines of polygon. Used for moving points just outside the
+#estuary polygon to the shoreline. Points and poly's must be in same CRS
+
+outside.points.move<-function(data, polygon.file){
+  est.1<-readShapePoly(paste(polygon.file))
+  proj4string(est.1)<-proj4string(data) 
+  outside.est <- data[is.na(over(data, as(est.1, "SpatialPolygons"))),] #subset the data to only those points outside the estuary polygon 
+  est.owin<-as(as(est.1, "SpatialPolygons"), "owin")
+  points.sp <- as(outside.est, "SpatialPoints")
+  points.ppp <- as(points.sp, "ppp")
+  est.psp<-as.psp(est.owin)
+  points.shore<-project2segment(points.ppp, est.psp)
+  points.shore.ppp<-as.ppp(points.shore$Xproj) ####just takes the projected points
+  shore.x<-points.shore.ppp$x
+  shore.y<-points.shore.ppp$y
+  coords<-cbind(shore.x,shore.y)
+  outside.est@coords<-coords
+  data.notoutside<-data[!is.na(over(data, as(est.1, "SpatialPolygons"))),]
+  new.data<-rbind(data.notoutside,outside.est)
+  return(new.data)
+}
+
+
+###move all points to the shoreline e.g for shore fishing
+
+all.points.move<-function(data,polygon.file){
+  data<-data
+  est.1<-readShapePoly(paste(polygon.file))
+  proj4string(est.1)<-proj4string(data) 
+  est.owin<-as(as(est.1, "SpatialPolygons"), "owin")
+  points.sp <- as(data, "SpatialPoints")
+  points.ppp <- as(points.sp, "ppp")
+  est.psp<-as.psp(est.owin)
+  points.shore<-project2segment(points.ppp, est.psp)
+  shore.x<-points.shore.ppp$x
+  shore.y<-points.shore.ppp$y
+  coords<-cbind(shore.x,shore.y)
+  data@coords<-coords
+  return(data)
+}
 
