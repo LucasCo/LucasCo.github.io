@@ -201,6 +201,8 @@ gps.date<-function(timeVector){
 }
 
 
+
+
 gps.date.syd<-function(timeSyd){
   date<-as.POSIXct(timeSyd, format="%Y-%m-%d %H:%M:%S")#convert time to POSIXCT timestamp
   date_1<-as.Date(date,format='%d-%m-%y')
@@ -295,5 +297,20 @@ all.points.move<-function(data,polygon.file){
   coords<-cbind(shore.x,shore.y)
   data@coords<-coords
   return(data)
+}
+
+#####convert character to numeric and convert NA's to zero
+
+
+character.to.num.NA.remove<-function(vector){
+  vec<-as.numeric(vector)
+  vec[is.na(vec)]<-0
+  return(vec)
+}
+
+character.to.num.NA.to.one<-function(vector){
+  vec<-as.numeric(vector)
+  vec[is.na(vec)]<-1
+  return(vec)
 }
 
