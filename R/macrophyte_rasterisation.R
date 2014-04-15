@@ -39,6 +39,14 @@ names(macro_stack)<-c("Percentage pixel covered by seagrass","distance to intert
 #WRITE TO FILE
 #####
 unstack_macro_stack<-unstack(macro_stack)
-outputnames <- paste("Output/",names(macro_stack), ".grd",sep="")
+outputnames <- paste("Output/SH_Survey_Macrophyte_Rasters/",names(macro_stack), ".grd",sep="")
 for(i in seq_along(unstack_macro_stack)){writeRaster(unstack_macro_stack[[i]], file=outputnames[i])}
 
+
+
+#####
+#reading in files again
+#####
+rasterfiles   <- list.files("Output/SH_Survey_Macrophyte_Rasters", "*.grd", full.names = TRUE)
+macro_stack<-stack(rasterfiles)
+names(macro_stack)<-rasterfiles
