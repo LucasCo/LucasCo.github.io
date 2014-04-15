@@ -11,3 +11,6 @@ SH_shoreline_raster_5m.grd
 SH_shoreline_raster_5m.gri
 temp
 .RData
+figure/
+rec_fishing_sydney_harbour_paper_results.html
+rec_fishing_sydney_harbour_paper_results.md

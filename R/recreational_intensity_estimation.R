@@ -29,13 +29,17 @@ rec_list<-rec_df$INT.2
 rec_subsets<-lapply(unique(rec_list), function(x) rec_df[rec_df$INT.2==x,])
 rm(rec_list)
 
-coords_list<-list()
+coords_sp_list<-list()
 for(i in 1:length(rec_subsets)){
-  rep<-rec_subsets[[i]]
-  coords<-cbind(rep$Targtln, rep$TargtLt)
-  coords_list<-lappend(coords_list,coords)
+  rep<-rec_subsets[[i]] #subset to each list element
+  coords<-cbind(rep$Targtln, rep$TargtLt) #create a coords df for conversion
+  coords.sp<-SpatialPoints(coords) # convert to spatial points (sp)
+  proj4string(coords.sp)<-"+proj=longlat" #assign CRS
+  coords.sp.trans<-spTransform(coords.sp,CRS(proj4string(est))) # convert the spatialpoints to UTM (the prj4string of est is appropriate UTM)
+  coords<-cbind(coords.sp.trans$coords.x1,coords.sp.trans$coords.x2) #convert back to dataframe
+  coords_sp_list<-lappend(coords_sp_list,coords) #make a new list of converted coords
 }
-rm(i,coords,rep)
+
 
 #####
 #turn coords list into spatial points to convert to same CRS as est
@@ -59,9 +63,6 @@ rast<-raster()
 projection(rast)<-proj4string(est)
 extent(rast)<-extent(est)
 res(rast)<-50
-rast
-
-
 
 
 #####
@@ -101,11 +102,24 @@ for(i in 1:length(kernel_rasters@layers)){
 names(kernel_rasters)<-names_list
 kernel_rasters_masked<-mask(kernel_rasters,est)
 
-max<-max(sapply(smooth_list, function(x) max(x$fhat)))
-max
-
+max<-max(values(max(kernel_rasters)),na.rm=T)
 brks <- seq(0,max,by=0.00000001)
+names(kernel_rasters)<-c("Winter Weekend Morning","Winter Weekend Midday","Winter Weekend Afternoon","Winter Weekday Morning",'Winter Weekday Midday',"Winter Weekday Afternoon",
+                         "Summer Weekend Midday","Summer Weekend Morning","Summer Weekend Afernoon","Summer Weekday Morning",'Summer Weekday Midday',"Summer Weekday Afternoon")
 plot(kernel_rasters,breaks=brks , legend=FALSE)
 
+#####
+#WRITE TO FILE
+#####
+unstack_rasters<-unstack(kernel_rasters)
+outputnames <- paste("Output/SH_Survey_Recreational_Use_Rasters/",names(kernel_rasters), ".grd",sep="")
+for(i in seq_along(unstack_rasters)){writeRaster(unstack_rasters[[i]], file=outputnames[i])}
 
+###
+#Reading in the files again
+####
+rasterfiles   <- list.files("Output/SH_Survey_Recreational_Use_Rasters", "*.grd", full.names = TRUE)
+kernel_rasters<-stack(rasterfiles)
+names(kernel_rasters)<-c("Winter Weekend Morning","Winter Weekend Midday","Winter Weekend Afternoon","Winter Weekday Morning",'Winter Weekday Midday',"Winter Weekday Afternoon",
+                        "Summer Weekend Midday","Summer Weekend Morning","Summer Weekend Afernoon","Summer Weekday Morning",'Summer Weekday Midday',"Summer Weekday Afternoon")
 

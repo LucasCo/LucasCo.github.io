@@ -314,3 +314,28 @@ character.to.num.NA.to.one<-function(vector){
   return(vec)
 }
 
+
+###Create a raster, rasterise a shp layer and create a distance raster
+distance.rast.points<-function(resolution, points, polygon.mask){
+  rast<-raster()
+  projection(rast)<-proj4string(points)
+  extent(rast)<-extent(polygon.mask)
+  res(rast)<-resolution
+  rast.1<-rasterize(points,rast,field=1)
+  dist<-distance(rast.1)
+  dist.rast<-mask(dist,polygon.mask)
+}
+
+
+####create a raster, and work out percentage of polygon falling in each pixel
+pixel.cover<-function(resolution, polygon, mask.polygon){
+  reast<-raster()
+  projection(rast)<-proj4string(mask.polygon)
+  extent(rast)<-extent(mask.polygon)
+  res(rast)<-resolution
+  cover_rast<-rasterize(polygon, rast, getCover=TRUE) #####getCover means that the percentage cover of the polygon in each cell is returned
+  cover_rast<-mask(cover_rast, mask.polygon)
+}
+
+
+
