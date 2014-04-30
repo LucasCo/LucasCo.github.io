@@ -1,6 +1,9 @@
 ####
 #Read in the data
 #####
+library(rgdal)
+source("R/functions.R")
+
 est<-readOGR("Data","SH_est_poly_clipped")
 est<-spTransform(est, CRS("+proj=utm +zone=56 +south +ellps=GRS80 +units=m +no_defs"))
 use_spdf<-readOGR("Output","SH_census_spdf")

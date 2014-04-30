@@ -338,4 +338,14 @@ pixel.cover<-function(resolution, polygon, mask.polygon){
 }
 
 
+####
+blank.raster<-function(extent, resolution){
+  rast<-raster()
+  extent(rast)<-extent(extent)
+  res(rast)<-resolution
+  proj4string(rast)<-proj4string(proj4string(extent))
+  return(rast)
+}
+
+
 

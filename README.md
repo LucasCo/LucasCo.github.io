@@ -14,6 +14,7 @@ library(rgdal)
 library(RColorBrewer)
 library(raster)
 library(KernSmooth)
+rm(list = ls())
 ```
 
 
@@ -75,11 +76,34 @@ str(use_df)
 Note that some points at this stage fall outside the Estuary polygon. These are shore fishermen. These points are dealt with later.
 
 ```r
-plot(use_spdf, cex = 0.05, main = "All points in Sydney Harbour Survey 2013-2014")
-plot(est, add = T)
+use_spdf <- function() {
+    plot(use_spdf, cex = 0.05, main = "All points in Sydney Harbour Survey 2013-2014")
+    plot(est, add = T)
+}
+jpeg("README_images/use_spdf.jpg")
+use_spdf()
 ```
 
-![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
+```
+## Error: unused argument (x)
+```
+
+```r
+dev.off()
+```
+
+```
+## pdf 
+##   2
+```
+
+```r
+use_spdf()
+```
+
+```
+## Error: unused argument (x)
+```
 
 
 HABITAT RASTERS AND DISTANCE TO INTERTIDAL HABITAT
