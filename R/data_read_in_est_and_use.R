@@ -8,11 +8,13 @@ est<-readOGR("Data","SH_est_poly_clipped")
 est<-spTransform(est, CRS("+proj=utm +zone=56 +south +ellps=GRS80 +units=m +no_defs"))
 use_spdf<-readOGR("Output","SH_census_spdf")
 use_spdf<-spTransform(use_spdf, CRS(proj4string(est)))
-use_df<-use_spdf@data
 
-i <- sapply(use_df, is.factor)###convert factors to characters
-use_df[i] <- lapply(use_df[i], as.character)
+
+i <- sapply(use_spdf@data, is.factor)###convert factors to characters
+use_spdf@data[i] <- lapply(use_spdf@data[i], as.character)
 rm(i)
+
+use_df<-use_spdf@data
 
 ######
 #Create new entries for the value of 'fleet size'
@@ -25,5 +27,8 @@ use_df<-use_df.expanded
 rm(use_df.expanded)
 use_df$INT<-as.character(interaction(use_df$Season,use_df$DyTrns_, use_df$date_1))
 
+###convert date to proper date format
+use_spdf$date_1<-as.Date(use_spdf$date_1,format='%Y-%m-%d')
+use_df$date_1<-as.Date(use_df$date_1,format='%Y-%m-%d')
 
 
